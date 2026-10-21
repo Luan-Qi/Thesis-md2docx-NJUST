@@ -1,0 +1,27 @@
+__pycache__/
+.pytest_cache/
+.DS_Store
+
+# tools/compare_cover.py 的临时工作目录（导出的 PDF 与渲染出的 PNG）
+.cover-compare/
+
+thesis_md2docx/math/latex2omml_node/node_modules/
+example/output/*.docx
+example/output/*.pdf
+example/output/*.md
+example/output/pages/*.png
+example/output/pdf-diff/
+example/output/pdf-rendered/
+example/preview/
+.env
+
+*.bak
+*.docx.bak
+
+# School source material. The specification, the university's already typeset
+# thesis (~45 MB) and the cover artwork source live here; the profile ships its
+# own copy of the logo, so the repository works without this directory.
+format_requirements/
+
+# Folder for user output
+output/
