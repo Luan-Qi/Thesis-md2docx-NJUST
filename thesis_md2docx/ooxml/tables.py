@@ -22,6 +22,21 @@ from .xml import spacing_xml
 
 BorderSpec = tuple[str | None, int | None]
 
+#: 表格单元格的行距：固定 18.75pt（`lineRule="exact"`，375 twips）。
+#:
+#: 三个版本都试过：
+#:   * `line="360" auto`（1.5 倍）→ 行高对，但余量加在字形**下方**，配上 `vAlign=center`
+#:     后文字整块偏上约 1.1mm（第一行最明显）。
+#:   * `line="240" auto`（单倍）→ 文字居中，但每行矮 6pt，整篇论文少 6 页（142 → 136）。
+#:   * 单倍 + 底部单元格边距 → 单行行高对，但边距按**格**加而单倍行距按**行**算，
+#:     多行单元格会变矮，页数又少了 1 页。
+#: 最终用固定行距：五号字单倍行高实测 ≈12.5pt，1.5 倍 = 18.75pt = 375 twips，行高与旧版本
+#: 一致；固定行距的文字贴底，正好把"偏上"变成"偏下 0.4mm"，肉眼已在容差内。
+TABLE_CELL_LINE = 375
+TABLE_CELL_LINE_RULE = "exact"
+#: 单元格底边距。设 0：见上面第 3 条，加了会破坏多行单元格的行高。
+TABLE_CELL_MARGIN_BOTTOM = 0
+
 
 def _parse_border_specs(value: str | None) -> list[BorderSpec] | None:
     if not value:
@@ -87,7 +102,11 @@ def table_cell_xml(
         text,
         style=style,
         align=align,
-        ppr_extra=spacing_xml(line=360, after=paragraph_after),
+        # 固定行距让字形贴底，底部单元格边距再把内容顶回一半 → 真正的垂直居中；
+        # 两者之和 = 五号字 1.5 倍的行高，所以行高与旧版本一致。
+        ppr_extra=spacing_xml(
+            line=TABLE_CELL_LINE, line_rule=TABLE_CELL_LINE_RULE, after=paragraph_after
+        ),
         left=paragraph_left,
         first_line=paragraph_first_line,
         first_line_chars=paragraph_first_line_chars,
@@ -98,6 +117,11 @@ def table_cell_xml(
     )
     tc_pr_parts = ["<w:tcPr>", f'<w:tcW w:w="{width}" w:type="{width_type}"/>']
     tc_pr_parts.append('<w:vAlign w:val="center"/>')
+    if TABLE_CELL_MARGIN_BOTTOM:
+        # 只写 bottom，左右沿用表格默认；与上面的固定行距配合把文字调到垂直居中。
+        tc_pr_parts.append(
+            f'<w:tcMar><w:bottom w:w="{TABLE_CELL_MARGIN_BOTTOM}" w:type="dxa"/></w:tcMar>'
+        )
     if grid_span and grid_span > 1:
         tc_pr_parts.append(f'<w:gridSpan w:val="{grid_span}"/>')
     if vmerge == "restart":
@@ -134,6 +158,7 @@ def table_xml(
     options: Mapping[str, str] | None = None,
     math_converter: MathConverter | None = None,
     reference_anchors: dict[str, str] | None = None,
+    text_width: int | None = None,
 ) -> str:
     cell_style = cell_style or "TableText"
     text_rows = table_rows_text(rows)
@@ -141,9 +166,9 @@ def table_xml(
     header_names = [text_rows[0][i].strip() if i < len(text_rows[0]) else "" for i in range(col_count)]
     grouped_header = parse_grouped_step_header(text_rows[0])
     col_widths = (
-        compute_grouped_metric_column_widths(col_count)
+        compute_grouped_metric_column_widths(col_count, text_width=text_width)
         if grouped_header
-        else compute_table_column_widths(rows, options=options)
+        else compute_table_column_widths(rows, options=options, text_width=text_width)
     )
     table_font_size = choose_table_font_size(rows)
     top_border_size = parse_int_option(options, "top_border", 12) or 12

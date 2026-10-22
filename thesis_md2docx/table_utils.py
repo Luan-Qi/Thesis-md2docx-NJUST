@@ -32,12 +32,70 @@ ParsedTableRows = list[list[ParsedTableCell]]
 
 
 def split_markdown_row(line: str) -> list[str]:
+    """按 `|` 拆分表格行，但**跳过公式与行内代码里的竖线**。
+
+    典型踩坑：`| 方向门限 | $\\left|\\cos\\theta\\right|_{\\min}$ | 0.15 | 说明 |`
+    里 LaTeX 的 `|`（绝对值）不是列分隔符。早期直接 `raw.split("|")`，这一行会被切成
+    6 段而不是 4 段；多出来的单元格没有对应网格列，Word 会把它们排在表格右边界之外，
+    表现为"表格右边多出来的数字/文字"。
+
+    规则：
+    * `$...$` 内不切（内联公式）；找不到配对的 `$` 就当普通字符，避免一行里落单的 `$`
+      把后面所有列都吞掉；
+    * `` `...` `` 内不切（行内代码），同样要求能配对；
+    * `\\|` 是 GFM 的转义竖线，切成一个字面 `|`（公式里不转义，`\\|` 在 LaTeX 里是范数符号）。
+    """
+
     raw = line.strip()
-    if raw.startswith("|"):
-        raw = raw[1:]
-    if raw.endswith("|"):
-        raw = raw[:-1]
-    return [cell.strip() for cell in raw.split("|")]
+    cells: list[str] = []
+    buf: list[str] = []
+    i = 0
+    n = len(raw)
+    in_math = False
+    in_code = False
+    while i < n:
+        ch = raw[i]
+        if in_code:
+            if ch == "`":
+                in_code = False
+            buf.append(ch)
+            i += 1
+            continue
+        if in_math:
+            if ch == "$":
+                in_math = False
+            buf.append(ch)
+            i += 1
+            continue
+        if ch == "\\" and i + 1 < n and raw[i + 1] == "|":
+            buf.append("|")
+            i += 2
+            continue
+        if ch == "`" and raw.find("`", i + 1) != -1:
+            in_code = True
+            buf.append(ch)
+            i += 1
+            continue
+        if ch == "$" and raw.find("$", i + 1) != -1:
+            in_math = True
+            buf.append(ch)
+            i += 1
+            continue
+        if ch == "|":
+            cells.append("".join(buf).strip())
+            buf = []
+            i += 1
+            continue
+        buf.append(ch)
+        i += 1
+    cells.append("".join(buf).strip())
+
+    # 去掉首尾那对作为行边界的空单元格（`| a | b |` 拆出来是 ['', 'a', 'b', '']）
+    if raw.startswith("|") and cells and not cells[0]:
+        cells = cells[1:]
+    if raw.endswith("|") and cells and not cells[-1]:
+        cells = cells[:-1]
+    return cells
 
 
 def parse_table_options(raw: str) -> dict[str, str]:
@@ -414,16 +472,17 @@ def parse_grouped_step_header(header_row: list[str]) -> dict[str, object] | None
     return {"first": first, "avg": avg, "groups": groups}
 
 
-def compute_grouped_metric_column_widths(col_count: int) -> list[int]:
+def compute_grouped_metric_column_widths(col_count: int, *, text_width: int | None = None) -> list[int]:
+    body_width = text_width or BODY_TEXT_WIDTH_TWIPS
     if col_count < 6:
-        return [BODY_TEXT_WIDTH_TWIPS // col_count] * col_count
+        return [body_width // col_count] * col_count
     first_width = 980
     avg_width = 500
     remaining_cols = col_count - 2
-    remaining_width = BODY_TEXT_WIDTH_TWIPS - first_width - avg_width
+    remaining_width = body_width - first_width - avg_width
     base = remaining_width // remaining_cols
     widths = [first_width] + [base] * remaining_cols + [avg_width]
-    diff = BODY_TEXT_WIDTH_TWIPS - sum(widths)
+    diff = body_width - sum(widths)
     widths[-2] += diff
     return widths
 
@@ -442,7 +501,13 @@ def parse_widths_option(value: str | None, *, expected_count: int | None = None)
     return widths
 
 
-def compute_table_column_widths(rows: ParsedTableRows, *, options: Mapping[str, str] | None = None) -> list[int]:
+def compute_table_column_widths(
+    rows: ParsedTableRows,
+    *,
+    options: Mapping[str, str] | None = None,
+    text_width: int | None = None,
+) -> list[int]:
+    body_width = text_width or BODY_TEXT_WIDTH_TWIPS
     text_rows = table_rows_text(rows)
     col_count = expanded_column_count(rows) or max(len(rows[0]), 1)
     explicit_widths = parse_widths_option(options.get("widths") if options else None, expected_count=col_count)
@@ -466,22 +531,22 @@ def compute_table_column_widths(rows: ParsedTableRows, *, options: Mapping[str, 
     avg_summary_layout = col_count == 3 and header_names[0] == "方法" and all("平均" in h for h in header_names[1:])
     if main_result_layout:
         widths = [900, 1482, 1482, 1482, 1482, 1485]
-        diff = BODY_TEXT_WIDTH_TWIPS - sum(widths)
+        diff = body_width - sum(widths)
         widths[-1] += diff
         return widths
     if variant_ablation_layout:
         widths = [600, 1370, 1370, 1170, 1170, 1315, 1318]
-        diff = BODY_TEXT_WIDTH_TWIPS - sum(widths)
+        diff = body_width - sum(widths)
         widths[-1] += diff
         return widths
     if ood_comparison_layout:
         widths = [1250, 1450, 1220, 1220, 1300, 930, 943]
-        diff = BODY_TEXT_WIDTH_TWIPS - sum(widths)
+        diff = body_width - sum(widths)
         widths[-1] += diff
         return widths
     if avg_summary_layout:
         widths = [1100, 3600, 3613]
-        diff = BODY_TEXT_WIDTH_TWIPS - sum(widths)
+        diff = body_width - sum(widths)
         widths[-1] += diff
         return widths
 
@@ -524,18 +589,18 @@ def compute_table_column_widths(rows: ParsedTableRows, *, options: Mapping[str, 
         scores.append(max(score, 1.0))
 
     total_min = sum(min_widths)
-    if total_min >= BODY_TEXT_WIDTH_TWIPS:
-        scale = BODY_TEXT_WIDTH_TWIPS / total_min
+    if total_min >= body_width:
+        scale = body_width / total_min
         widths = [max(360, int(width * scale)) for width in min_widths]
     else:
-        remaining = BODY_TEXT_WIDTH_TWIPS - total_min
+        remaining = body_width - total_min
         score_sum = sum(scores) or float(col_count)
         widths = [
             min_widths[idx] + int(remaining * scores[idx] / score_sum)
             for idx in range(col_count)
         ]
 
-    diff = BODY_TEXT_WIDTH_TWIPS - sum(widths)
+    diff = body_width - sum(widths)
     if diff:
         widths[-1] += diff
     return widths

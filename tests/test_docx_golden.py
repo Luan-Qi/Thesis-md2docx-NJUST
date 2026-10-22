@@ -17,7 +17,7 @@ GOLDEN_DOCX_PART_HASHES = {
     "_rels/.rels": "f2ee5d069d316d080de4513502475fc76cbd64a7c536cf2420faad30a053aaae",
     "docProps/app.xml": "fce1d0ca26f687eabbc9465481916002bebe2b7e31cfc53c83967485475b98fc",
     "word/_rels/document.xml.rels": "c2aa9aa1b2bd0f931bd0c94a36dd2fd0e05b944bbaf56c9d2fe3c9b74520200e",
-    "word/document.xml": "3aaf2f296f9ae86e8d269bf6294ce7de39b47bc5faf52a3479d2765b882d6415",
+    "word/document.xml": "81297f56f01861457641508ba4b25fe24862b62d31d4c896e079e6c4c0af257e",
     "word/styles.xml": "c875b84e33c74e867ee62b5927d1a6f9ee832267eb360a04cb6e7983cc7f23d8",
     "word/numbering.xml": "4f3c66e06770b052504c874dc38a0f297b52369daed0fad1b31721b9c47def9e",
     "word/settings.xml": "76838f5c3ff5c6bdbd19f9d7cd33abc5a1185aeb34531c7e3be9eeefbdbb0971",

@@ -40,6 +40,7 @@ from .constants import (
     SIZE_SI,
     SIZE_WU,
     SIZE_XIAO_SI,
+    TEXT_WIDTH,
     UNNUMBERED_HEADINGS,
 )
 from .styles import STYLE_HEADING_1, njust_style_roles
@@ -350,6 +351,17 @@ def section_pr_builder(**kwargs) -> str:
     return native_sect_pr_xml(geometry=PAGE_GEOMETRY, **kwargs)
 
 
+def njust_table_xml(rows, cell_style: str | None = None, **kwargs) -> str:
+    """表格构建器：列宽基准换成 profile 的正文宽（160mm = 9070 twips）。
+
+    通用层默认用 `BODY_TEXT_WIDTH_TWIPS = 8313`（上游学校的正文宽）。南理工正文宽是
+    160mm，若不覆盖，算出的列宽会整体偏窄约 9%，再经 `tblW=100%` 拉伸后，列宽比例就
+    不再忠实于内容长度——这正是"字多的列被压很紧"的来源之一。
+    """
+
+    return table_xml(rows, cell_style, text_width=TEXT_WIDTH, **kwargs)
+
+
 def body_style_profile() -> BodyRenderProfile:
     styles = njust_style_roles()
     return BodyRenderProfile(
@@ -386,7 +398,7 @@ def body_style_profile() -> BodyRenderProfile:
         caption_builder=caption_paragraph_xml,
         reference_builder=reference_paragraph_xml,
         image_builder=figure_image_paragraph_xml,
-        table_builder=table_xml,
+        table_builder=njust_table_xml,
         appendix_heading_normalizer=normalize_appendix_heading,
         appendix_reference_normalizer=normalize_appendix_references,
         section_pr_builder=section_pr_builder,
