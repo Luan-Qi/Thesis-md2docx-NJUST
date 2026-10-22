@@ -12,43 +12,94 @@
 ## 目录
 
 - [快速开始](#快速开始)
+  - [1. 准备 Python 环境](#1-准备-python-环境)
+  - [2. 怎么运行它（最容易踩的坑）](#2-怎么运行它最容易踩的坑)
+  - [3. 公式依赖（可选）](#3-公式依赖可选)
+  - [4. 常用命令](#4-常用命令)
+  - [5. 目录页码：为什么需要 refresh-fields](#5-目录页码为什么需要-refresh-fields)
+  - [6. PDF 后端](#6-pdf-后端)
 - [Markdown 写法](#markdown-写法)
 - [格式依据与规则来源](#格式依据与规则来源)
-- [规范未明确的排版项](#规范未明确的排版项)
 - [页面与分节结构](#页面与分节结构)
 - [页眉、页脚与页码](#页眉页脚与页码)
 - [匿名版与实名版](#匿名版与实名版)
-- [已知行为与限制](#已知行为与限制)
+- [使用提醒](#使用提醒)
 - [项目结构](#项目结构)
 - [扩展其他学校](#扩展其他学校)
 - [测试](#测试)
 - [来源与协议](#来源与协议)
 
-> **第一次使用请先读这两份**：
+> **AGENT使用请直接让他读这两份**：
 > [`docs/markdown-format.md`](docs/markdown-format.md)（Markdown 内容格式 + 手把手使用步骤）、
 > [`example/thesis-template.md`](example/thesis-template.md)（直接复制就能开始写的新论文骨架）。
 >
 > **要改这个项目本身的代码，先读 [`AGENT.md`](AGENT.md)**：里面记录了迭代过程、
-> 已实测排除的假设，以及 Word / OOXML 的一堆隐性行为坑（域提示、分节符吞段前距、
-> 双面排版插页、图片行距、封面与声明页的规范数值等）。
+> 已实测排除的假设、Word / OOXML 的隐性行为坑（域提示、分节符吞段前距、双面排版插页、
+> 图片行距、封面与声明页的逐项数值），以及**「规范未明确项」的完整采用值表**。
 
 ---
 
 ## 快速开始
 
-### 环境
+### 1. 准备 Python 环境
 
-只需要 Python ≥ 3.10 与 Pillow；导出 PDF 需要本机装有 Microsoft Word（推荐）或 LibreOffice。
+本工具是一个 **Python 程序**：所有命令都要在**已经装好依赖的 Python 解释器**里执行
+（系统 Python、`venv`、`conda` 都行）。要求 **Python ≥ 3.10** 与 **Pillow**；
+导出 PDF 与刷新目录页码额外需要本机装有 **Microsoft Word**（推荐）或 LibreOffice。
 
-本项目在 `conda` 环境下验证通过。若使用仓库附带的 `conda-manual.ps1`：
+```bash
+# 方式 A：conda
+conda create -n thesis python=3.12 -y
+conda activate thesis
+python -m pip install -e .
 
-```powershell
-. "D:\Users\Desktop\HarnessThesis\conda-manual.ps1" myui
-cd D:\Users\Desktop\HarnessThesis\Thesis-md2docx-NJUST
+# 方式 B：venv
+python -m venv .venv
+.venv\Scripts\activate          # Windows
+source .venv/bin/activate       # macOS / Linux
 python -m pip install -e .
 ```
 
-### 公式（可选，但建议安装）
+`python -m pip install -e .` 会装好 Pillow，并顺带注册一个 `md2docx` 命令（见下一节）。
+
+### 2. 怎么运行它
+
+**它不是一个双击/直接敲名字就能用的程序。** 直接在终端里敲 `md2docx` 很可能报
+`command not found` / `不是内部或外部命令`——因为这个命令只有在**装过本项目并且激活了那个
+环境**之后才会出现在 PATH 上。
+
+两种可靠写法，任选其一：
+
+```bash
+# 写法一（最稳，不需要 pip install）：用 python 调用仓库里的入口脚本
+python md2docx.py thesis.md --out output
+
+# 写法二：先 python -m pip install -e . 并激活环境，之后才能直接用命令名
+md2docx thesis.md --out output
+```
+
+两个前提缺一不可：
+
+1. **`python` 指向装好依赖的那个解释器**——用 conda/venv 就先激活，别在系统 Python 里跑；
+2. **当前目录是仓库根目录**（或给 `md2docx.py` 写绝对路径），否则找不到入口脚本。
+
+不确定当前用的是哪个解释器时，先确认：
+
+```bash
+python -c "import sys; print(sys.executable)"      # 看路径对不对
+python -c "import PIL; print(PIL.__version__)"     # 看 Pillow 在不在
+```
+
+> 本文档下面的示例统一写成 `python md2docx.py ...`。如果你已经 `pip install -e .` 并激活了
+> 环境，把 `python md2docx.py` 换成 `md2docx` 即可，参数完全一样。
+
+> **本机（作者本人）常用的一行命令**——只对这台机器有效，其他人请用上面的通用写法：
+>
+> ```powershell
+> & 'E:\Anaconda\envs\myui\python.exe' 'D:\Users\Desktop\HarnessThesis\Thesis-md2docx-NJUST\md2docx.py' D:\Users\Desktop\UAV_SUPER\UAV_SUPER_THESIS\thesis.md --pdf --pages --out output --backend word
+> ```
+
+### 3. 公式依赖（可选）
 
 公式会被转换成 Word 原生 OMML。转换依赖两个**公开 npm 包**（`temml`、`@hungknguyen/mathml2omml`，
 均未被本项目修改，`package-lock.json` 中的 `resolved` 指向 `registry.npmjs.org`）：
@@ -59,55 +110,58 @@ npm install --prefix thesis_md2docx/math/latex2omml_node
 
 不安装也能导出，公式会以 LaTeX 文本写入 DOCX。
 
-### 常用命令
+### 4. 常用命令
 
 ```bash
 # 检查环境（同时校验 profile 的样式目录、语义角色与前置页计划）
-md2docx check
+python md2docx.py check
 
 # 生成 DOCX
-md2docx example/thesis-demo.md --out example/output
+python md2docx.py example/thesis-demo.md --out example/output
 
 # 生成 DOCX + PDF + 分页图
-md2docx example/thesis-demo.md --pdf --pages --out example/output --backend word
+python md2docx.py example/thesis-demo.md --pdf --pages --out example/output --backend word
 
 # 只把已有 DOCX 转 PDF
-md2docx pdf output/thesis.docx output/thesis.pdf --backend word
+python md2docx.py pdf output/thesis.docx output/thesis.pdf --backend word
 
 # 用 Word 刷新域，把真实目录页码写回 DOCX（生成后建议跑一次）
-md2docx refresh-fields output/thesis.docx
+python md2docx.py refresh-fields output/thesis.docx
 
 # 对照学校范例审计版式
-md2docx compare-docx reference.docx output/thesis.docx --out output/audit.md
-md2docx compare-pdf reference.pdf output/thesis.pdf --out output/pdf-audit.md --diff-dir output/pdf-diff
+python md2docx.py compare-docx reference.docx output/thesis.docx --out output/audit.md
+python md2docx.py compare-pdf reference.pdf output/thesis.pdf --out output/pdf-audit.md --diff-dir output/pdf-diff
 
 # 封面像素级对版：把生成封面与学校参考封面各自经 Word 导出 PDF、同 DPI 渲染、逐线比较
 python tools/compare_cover.py
 ```
 
+运行时会先打印「md2docx 开始」与本次命令，结束时打印总耗时；导出 PDF 的环节会明确提示
+正在调用 Word——这一步单次 30~60 秒属正常，不要急着中断。
+
 `njust-master-thesis` 是唯一的 profile，也是默认 profile，因此普通导出不需要 `--profile`。
 一键脚本 `export-example.ps1` / `.cmd` / `.sh` 会把示例论文完整导出到 `example/output/`。
 
-### 目录页码：为什么需要 refresh-fields
+### 5. 目录页码：为什么需要 refresh-fields
 
 生成 DOCX 时，目录里每一条的页码是**占位值**——真实页码只有在 Word 完成分页之后才存在。
 把占位值换成真实页码有两条路：
 
 ```bash
 # 推荐：由 Word 刷新后回存（需要本机有 Microsoft Word）
-md2docx refresh-fields output/thesis.docx
+python md2docx.py refresh-fields output/thesis.docx
 
 # 或者在 Word 里打开文档，Ctrl+A 然后按 F9（或右键目录 → 更新域 → 更新整个目录），再保存
 ```
 
-导出 PDF 时不需要这一步：`md2docx pdf --backend word` 会在导出前自动更新域，因此 PDF 里的目录页码
-始终正确。
+导出 PDF 时不需要这一步：`python md2docx.py pdf --backend word` 会在导出前自动更新域，
+因此 PDF 里的目录页码始终正确。
 
 > **不要**用「给目录域加 `w:dirty`」或「打开 `w:updateFields`」来让 Word 自动刷新——那会让 Word 每次
 > 打开文档都弹出「该文档包含的域可能引用了其他文件」，即使文档里没有任何外部引用。本项目两者都不写，
 > 这也正是参考论文 `_anno.docx` 的做法。
 
-### PDF 后端
+### 6. PDF 后端
 
 | 后端 | 环境 | 定位 |
 | --- | --- | --- |
@@ -119,7 +173,8 @@ md2docx refresh-fields output/thesis.docx
 > pandoc 与 MiKTeX **不能**替代这两个后端——pandoc 的 docx→pdf 会经过 LaTeX 重排而破坏 Word 版式，
 > MiKTeX 只从 `.tex` 生成 PDF、不读 DOCX。
 
-Word 自动化需要写入 `%APPDATA%\Microsoft\Word`。在受限沙箱中该路径可能被拒绝，此时为命令申请更宽的权限即可。
+导出 PDF 失败时，先确认本机 Word 是否可用（`python md2docx.py check --backend word`）；
+若在受限沙箱/自动化环境里运行，Word 需要写 `%APPDATA%\Microsoft\Word`，这类失败要放宽权限后重试。
 
 ---
 
@@ -254,45 +309,8 @@ format_requirements/
 因此 `format_requirements/` 缺失时仍能正常生成。换校徽时覆盖那个副本即可，
 尺寸常数在 `constants.py`。详见 [format_requirements/README.md](format_requirements/README.md)。
 
-当规范与范例冲突时，**以规范为准**；规范未明确的项目按下表取值。
-
----
-
-## 规范未明确的排版项
-
-规范（含其附件批注）明确把下列项目列为"原文未明确"，并要求不依据模板实际格式反推。
-但自动生成必须给出确定值，因此这里逐项记录采用值，便于复核与覆盖。
-
-| 项目 | 规范表述 | 本项目采用值 | 依据 |
-| --- | --- | --- | --- |
-| 封面字段位置 | 未明确 | 标签首行缩进 843 twips，值列制表位 4200 twips | 范例反推；原范例 8280 的制表位被 Tab 触发时会使值折行，故左移 |
-| 封面题名/作者下方横线 | 未明确 | **每行题名各一条** 140.5mm（单行题名也补画第二条），作者姓名下 **50.7mm**；均居中、粗 0.75pt | 范例 `mc:AlternateContent` 里 wps 浮动线的 `cx` 实测（5057775 / 1824990 EMU，两条题名线相距 11mm） |
-| 横线的实现方式 | — | 段落下框线 + 左右等距缩进 | 不引入 VML/形状；代价是线只能落在段落底部（作者线比范例低 2.1mm） |
-| 封面填空位宽度与值的对齐 | 未明确 | 六行下划线**等宽 86.8mm（246pt）**，值**居中**在填空位里（中心距填空位起点 113.1pt） | 范例像素实测：六条线都 69.6→156.4mm，三条中文值的中心都在 109.5mm |
-| 封面顶部的段前 | 规范 156 / 范例 163 | `before=163` + `beforeLines=50`（Word 取 0.5 行 = 10pt） | 范例；两个值都写，实际以 beforeLines 为准 |
-| 「论文提交时间」行的字符间距 | 未明确 | 文字 run 加 `w:spacing=-10`（-0.5pt），空格不加（否则下划线会缩短） | 范例该行所有 run 都是 -10 |
-| UDC 行「注1」的字体 | 未明确 | 华文中宋，上标 + 下划线 | 范例该 run 写死 `w:eastAsia="华文中宋"` |
-| 声明页标题行距 | 未明确 | 「声  明」固定值 20 磅；「学位论文使用授权声明」单倍 | 范例：前者无 spacing 覆盖（继承 Normal），后者显式 `line=240 auto` |
-| 声明页行距（★★） | 未明确 | 该页段落**吸附行网格**：节的 `docGrid type="linesAndChars" linePitch="326"`，14pt 正文吸附成 **2 格 = 32.6pt**；空行的字号写进 `pPr/rPr` | 范例该页每个段落都带 `<w:snapToGrid/>`，且空行的段落标记写 `sz=28`（16pt 标题后那条写 `sz=32`） |
-| 声明页签名下划线长度 | 未明确 | 声明页 12 个空格、授权页 13 个，其后 13 个普通空格 | 范例逐 run 实测 |
-| 封面「32号楷体」磅值 | 未明确 | 32pt 楷体加粗 | 学校排版件 `w:sz=64` |
-| 封面未批注字段的字体 | 未明确 | 四号宋体加粗 | 与已批注的「学位类别」标签一致 |
-| 正文首行缩进 | 未明确 | 2 字符（firstLineChars=200 / 480 twips） | 范例 |
-| 目录缩进与制表位 | 未明确 | TOC1 = 0、TOC2 = 420、TOC3 = 839 twips；右对齐点线制表位 9070 twips | 范例 |
-| 参考文献悬挂缩进 | 未明确 | 0（不悬挂） | 规范未明确则不设；如需悬挂改 `styles.py` 中的 `STYLE_REFERENCE` |
-| 图题对齐与段距 | 未明确 | 居中、段前段后 0、固定值 20 磅 | 范例 |
-| 图片默认宽度 / 居中 / 环绕 | 未明确 | 居中、段前后 0；宽度按图片 DPI 与页面宽度推导 | 范例 |
-| 公式居中与编号右对齐 | 未明确 | 居中制表位 4535 + 右对齐制表位 9070 | 范例 |
-| 表格三线表与边框粗细 | 未明确 | 正文表格默认三线表（上下线 1.5 磅、无内线） | 范例；可用 `::: table` 逐表覆盖 |
-| 表内行距 | 未明确 | 单倍行距 | 避免固定行距裁切单元格 |
-| 页眉横线 | 未明确 | 单线 0.75 磅（`w:sz="6"`） | 范例 |
-| 附录公式编号 | 未明确 | `（A.1）`、`（B.3）` | 与规范 11.4 的 `图B1`／`表B1` 保持一致 |
-| 伪代码 / 算法 | 未规定 | 不设专用样式，按普通正文与代码块渲染 | 规范未设规则 |
-
-其余项目均按规范明文或附件批注实现，例如：页面 30/24/25/25mm、固定值 20 磅行距、
-一级标题小三号加粗居左段前后 18 磅、二级四号 12 磅、三级小四 6 磅、
-摘要/Abstract/目录/致谢/参考文献/附录标题三号加粗居中段前后 18 磅
-（目录标题上空按规范批注为 18mm，见 `constants.BEFORE_TOC_TITLE`）。
+当规范与范例冲突时，**以规范为准**；规范（含附件批注）没有写死、而生成时必须确定的值，
+采用值逐条记录在 [`AGENT.md` 第 5 节](AGENT.md)，可复核、可覆盖。
 
 ---
 
@@ -354,76 +372,31 @@ UDC：621.3
 
 ---
 
-## 已知行为与限制
+## 使用提醒
 
-1. **打开生成的 DOCX 时不会弹出「该文档包含的域可能引用了其他文件」。**
+导出前后值得知道的几件事（逐条成因、实测结论与取舍都在 [`AGENT.md`](AGENT.md)，这里只留结论）：
 
-   触发这个提示的是两件事，本项目两者都不写：
+1. **目录页码要刷新一次。** DOCX 里目录条目的页码是占位值，跑
+   `python md2docx.py refresh-fields output/thesis.docx`，或在 Word 里 `Ctrl+A` → `F9` 后保存，
+   才有真实页码。导出 PDF 不需要这一步（`--backend word` 会自动刷新）。
 
-   | 触发条件 | 说明 | 本项目 |
-   | --- | --- | --- |
-   | `<w:updateFields w:val="true"/>` | 让 Word 在打开时更新**所有**域 | 不写 |
-   | 任何 `w:dirty="true"` 的域 | 让 Word 在打开时更新**该**域；目录域最容易踩到 | 不写 |
+2. **打开生成的 DOCX 不会弹「该文档包含的域可能引用了其他文件」。** 这是刻意的：本项目既不写
+   `w:updateFields`，也不写任何 `dirty` 域。代价就是上一条那次手动刷新。
 
-   Word 对「有待更新的域」一律使用上述措辞，即使文档里只有引用文档自身的目录域和 PAGEREF 域。
-   实测确认：生成的 DOCX 里 `dirty` 域数量为 0、无 `updateFields`，且所有 `.rels` 中没有
-   `TargetMode="External"`、没有 `INCLUDETEXT` / `INCLUDEPICTURE` / `RD` 等外部引用域，
-   任何部件里都不含文件路径字符串。参考论文 `_anno.docx` 也是同样的结构，所以它不弹。
+3. **前置部分可能多出一页只有页眉页码的空白页。** 与「双面排版 + 正文重启页码」有关，是否出现
+   取决于前置部分（摘要 / Abstract / 目录）合计页数的奇偶，因此**换论文可能复现**。本示例不会
+   出现；真遇到时在 Word 里删掉该页，或调整目录长度让前置部分凑成偶数页。
 
-   代价是目录页码需要刷新一次——见[目录页码：为什么需要 refresh-fields](#目录页码为什么需要-refresh-fields)。
+4. **公式输出为 Word 原生 OMML**，不生成 MathType/OLE 对象。源论文里若含 OLE 公式，重新生成后
+   是可编辑的 Word 公式——视觉一致，对象类型不同。
 
-2. **「目录」之后可能多出一页只有页眉与页码的页面（成因已定位，已缓解）。**
+5. **只实现了学术硕士版式。** 专业硕士封面（「硕士专业学位论文」/「专 业 名 称」）未实现，
+   需要时按 `njust_master_thesis` 的写法新增一个 profile。
 
-   > **当前状态**：前置部分现在**逐页分节**（摘要 / Abstract / 目录 各自成节，见
-   > `document.py` 的 `front_continue_sect`）。这既让各页标题的段前距生效，也让前置部分
-   > 更容易凑成偶数页——本示例为 4 页，正文正好落在奇数页，因此**不再出现这一页**。
-   > 但页数奇偶仍取决于目录长度，换一篇论文仍可能复现，故保留下面的成因与取舍说明。
+6. **不覆盖浮动对象、脚注尾注、修订痕迹**等深度 Word 排版。
 
-   现象：目录页（罗马数字 III）之后出现一页罗马数字 IV，没有正文，只有页眉与页码；
-   正文顺延到再下一页，从阿拉伯数字 1 开始。逐页像素检测确认它不是文本提取的假象
-   （该页墨迹约 0.07%）。在 Word 中打开也在同一页，`docProps/app.xml` 记录的页数与 PDF 一致。
-
-   **根因**：只要文档带有「双面排版」属性，Word 就会在**重启页码的分节**处插入一页，
-   让重启后的第 1 页（奇数）落在奇数物理页上。触发「双面排版」的是下面两个设置中的**任意一个**：
-
-   - `<w:evenAndOddHeaders/>` —— 规范 11.1 要求奇偶页眉不同，**必须保留**
-   - `<w:mirrorMargins/>` —— 规范 2.1 的「对称页边距」；因左右同为 25mm，它本身没有视觉效果
-
-   判断依据是**前置部分的页数奇偶**：前置部分为奇数页时，正文落在偶数物理页，
-   Word 就插一页把它推到奇数页。改版前本示例的前置部分为 5 页（封面、声明、摘要、
-   Abstract、目录），恰好是奇数，因此会多出这一页；逐页分节后变成 4 页（目录跨到第二页），
-   正文落在第 7 页（奇数），于是不再需要插页。
-
-   已实测**排除**的原因：目录长度（5 条与 30 条同样出现）、目录标题段前段后（压到 0 也出现）、
-   `w:type` 取值、分节段高度与是否独立成段、导出前是否更新域、`ExportAsFixedFormat` 与
-   `SaveAs2` 的差别。
-
-   实测可行的规避方式及其代价：
-
-   | 方式 | 空页 | 页码 | 代价 |
-   | --- | --- | --- | --- |
-   | 同时去掉奇偶页眉与对称页边距 | 无 | 正确 | 偶数页页眉与奇数页相同，**违反规范 11.1** |
-   | 正文节不重启页码 | 无 | 4/5… | 正文不从 1 开始，违反规范 6 |
-   | 正文节改用 `evenPage` | 无 | 2/3… | 正文从 2 开始，违反规范 6 |
-   | 前置部分占偶数页 | 无 | 正确 | 依赖前置内容恰好凑成偶数页，无法先验保证 |
-   | **逐页分节（当前做法）** | 本示例无 | 正确 | 不致保证——前置页数仍随目录长度变化 |
-   | 去掉奇偶页眉（仅当学校不强制） | 无 | 正确 | 偶数页页眉与奇数页相同，**违反规范 11.1** |
-
-   当前采用逐页分节：它既让各页标题的段前距生效，也顺带把本示例的前置部分凑成偶数页。
-   如果换一篇论文后这一页又出现，可选的做法是调整前置部分的分页使其为偶数页，
-   或按上表评估取舍。真要彻底去掉，就改
-   `thesis_md2docx/profiles/njust_master_thesis/styles.py` 的 `njust_settings_xml()`，
-   不再传 `even_and_odd_headers=True` 与 `mirror_margins=True`（代价是偶数页页眉）。
-
-3. **公式以 OMML 输出，不生成 MathType/OLE 公式对象。**
-   源论文中若含 OLE 公式对象，重新生成后会是可编辑的 Word 公式而非 OLE 对象，视觉一致但对象类型不同。
-
-4. **只实现学术硕士版本。** 专业硕士封面使用「硕士专业学位论文」与「专 业 名 称」标签，
-   当前未实现；需要时按 `njust_master_thesis` 的写法新增一个 profile。
-
-5. **不覆盖浮动对象、脚注尾注、修订痕迹等深度 Word 排版。**
-
-6. **最终验收仍需在 Word/WPS 中人工确认**分页、图表跨页、孤行与页码。
+7. **最终验收请在 Word/WPS 里人工过一遍**：分页、图表是否跨页、孤行、页码。自动导出保证格式
+   数值正确，但最终分页依赖本机字体与 Word 版本。
 
 ---
 
@@ -461,16 +434,9 @@ Thesis-md2docx-NJUST/
 │   └── backends.md                     # PDF 后端
 ├── skill/                              # Agent skill
 ├── tests/
-├── tools/
-│   ├── regenerate_golden.py            # 有意改格式后重生 OOXML golden 哈希
-│   └── compare_cover.py                # 封面像素级对版（参考封面 vs 生成封面）
-├── format.md                           # 规范条款拆解稿
-└── format_requirements/                # 学校原始依据材料（不提交）
-    ├── 南理工硕士论文格式.doc
-    ├── 南理工硕士论文格式.docx
-    ├── 基于雷视融合..._anno.docx
-    ├── 参考封面.docx                     # 封面 + 声明页抽取件（对版基准）
-    └── 校徽 + 校名 logo.png
+└── tools/
+    ├── regenerate_golden.py            # 有意改格式后重生 OOXML golden 哈希
+    └── compare_cover.py                # 封面像素级对版（参考封面 vs 生成封面）
 ```
 
 ---
@@ -519,8 +485,8 @@ python tools/regenerate_golden.py
 
 ```bash
 python -m pytest tests
-md2docx check
-md2docx example/thesis-demo.md --pdf --pages --out example/output --backend word
+python md2docx.py check
+python md2docx.py example/thesis-demo.md --pdf --pages --out example/output --backend word
 python tools/compare_cover.py        # 封面像素对版，超差退出码 1
 ```
 

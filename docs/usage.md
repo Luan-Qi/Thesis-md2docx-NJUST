@@ -25,7 +25,7 @@ Markdown 和 `img/` 是源文件；`output/` 是可删除、可重建的导出�
 开始写作前建议先检查环境：
 
 ```bash
-md2docx check
+python md2docx.py check
 ```
 
 如果有公式，建议安装公式依赖：
@@ -468,27 +468,27 @@ npm install
 日常写作时：
 
 ```bash
-md2docx thesis.md
+python md2docx.py thesis.md
 ```
 
 需要预览版式时：
 
 ```bash
-md2docx thesis.md --pdf --pages --out output --backend auto
+python md2docx.py thesis.md --pdf --pages --out output --backend auto
 ```
 
 最终检查时，优先使用 Microsoft Word 后端导出 PDF：
 
 ```bash
-md2docx thesis.md --pdf --out output --backend word
+python md2docx.py thesis.md --pdf --out output --backend word
 ```
 
 导出 PDF 时 Word 会顺带更新域，因此 PDF 里的目录页码始终正确。但**提交用的 DOCX** 需要单独刷新一次
 目录页码，否则目录里显示的是生成时的占位值：
 
 ```bash
-md2docx thesis.md --out output
-md2docx refresh-fields output/thesis.docx
+python md2docx.py thesis.md --out output
+python md2docx.py refresh-fields output/thesis.docx
 ```
 
 `refresh-fields` 用 Word 打开文档、更新所有域并把结果存回原文件。刷新后的文档既没有
@@ -505,7 +505,7 @@ LibreOffice 后端适合快速预览或没有 Word 的环境，但最终分页�
 如果要和学校范例或历史版本做视觉回归，可以对比 PDF 页面像素：
 
 ```bash
-md2docx compare-pdf reference.pdf output/thesis.pdf --out output/pdf-audit.md --diff-dir output/pdf-diff
+python md2docx.py compare-pdf reference.pdf output/thesis.pdf --out output/pdf-audit.md --diff-dir output/pdf-diff
 ```
 
 `--diff-dir` 会为存在差异的页面生成红色差异图。该命令依赖 `pdftoppm`，DPI 可用 `--dpi` 调整。

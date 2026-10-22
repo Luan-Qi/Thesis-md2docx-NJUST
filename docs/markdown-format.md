@@ -29,6 +29,9 @@
 
 假设你已经装好环境（见 [README 快速开始](../README.md#快速开始)）。
 
+> 本文示例统一写成 `python md2docx.py ...`——它**不需要先安装**，在仓库根目录直接就能跑。
+> 若你已 `python -m pip install -e .` 并激活了环境，把 `python md2docx.py` 换成 `md2docx` 即可。
+
 ```bash
 # ① 建一个自己的论文目录
 mkdir my-thesis && cd my-thesis
@@ -41,16 +44,16 @@ cp /path/to/Thesis-md2docx-NJUST/example/thesis-template.md thesis.md
 #    图片放进 img/，正文里用相对路径引用
 
 # ④ 检查环境
-md2docx check
+python md2docx.py check
 
 # ⑤ 生成 DOCX
-md2docx thesis.md --out output
+python md2docx.py thesis.md --out output
 
 # ⑥ 刷新目录页码（需要 Microsoft Word）
-md2docx refresh-fields output/thesis.docx
+python md2docx.py refresh-fields output/thesis.docx
 
 # ⑦ 导出 PDF 和分页图，用来检查版式
-md2docx thesis.md --pdf --pages --out output --backend word
+python md2docx.py thesis.md --pdf --pages --out output --backend word
 ```
 
 产物：
@@ -485,18 +488,18 @@ $$
 
 ```bash
 # 只生成 DOCX
-md2docx thesis.md --out output
+python md2docx.py thesis.md --out output
 
 # 生成 DOCX + PDF + 分页图
-md2docx thesis.md --pdf --pages --out output --backend word
+python md2docx.py thesis.md --pdf --pages --out output --backend word
 
 # 刷新目录页码（需要 Microsoft Word）
-md2docx refresh-fields output/thesis.docx
+python md2docx.py refresh-fields output/thesis.docx
 
 # 对照学校范例做结构与像素审计
-md2docx compare-docx format_requirements/基于雷视融合的不良天气船舶检测研究_anno.docx \
+python md2docx.py compare-docx format_requirements/基于雷视融合的不良天气船舶检测研究_anno.docx \
   output/thesis.docx --out output/audit.md
-md2docx compare-pdf format_requirements/范例.pdf output/thesis.pdf \
+python md2docx.py compare-pdf format_requirements/范例.pdf output/thesis.pdf \
   --out output/pdf-audit.md --diff-dir output/pdf-diff
 ```
 
@@ -508,7 +511,7 @@ md2docx compare-pdf format_requirements/范例.pdf output/thesis.pdf \
 - **提交用的 DOCX 需要刷新一次**：
 
   ```bash
-  md2docx refresh-fields output/thesis.docx
+  python md2docx.py refresh-fields output/thesis.docx
   ```
 
   或者用 Word/WPS 打开，`Ctrl+A` 后按 `F9`（右键目录 → 更新域 → 更新整个目录），再保存。
@@ -540,14 +543,14 @@ md2docx compare-pdf format_requirements/范例.pdf output/thesis.pdf \
 | 公式是 LaTeX 文本而不是公式 | 未安装公式依赖 | `npm install --prefix thesis_md2docx/math/latex2omml_node` |
 | 打开 DOCX 提示「域可能引用了其他文件」 | 不是本工具生成的（或用了旧版） | 用当前版本重新生成；本文档第 8.2 节说明了成因 |
 | 封面字段换行错乱 | 字段值过长 | 缩短字段值，或按需调整 `constants.py` 中的制表位 |
-| 目录后多出一页（只有页眉页码） | Word 在重启页码的分节处插入一页，让阿拉伯页码 1 落在奇数页 | 见 [README 已知行为](../README.md#已知行为与限制)；成因与目录长度无关 |
+| 目录后多出一页（只有页眉页码） | Word 在重启页码的分节处插入一页，让阿拉伯页码 1 落在奇数页 | 见 [AGENT.md 坑 6](../AGENT.md)；成因与目录长度无关 |
 | `md2docx`: command not found | 未安装或未激活环境 | 在仓库根目录用 `python md2docx.py ...`，或 `pip install -e .` |
 
 ---
 
 相关文档：
 
-- [README](../README.md) — 项目总览、格式依据、规范未明确项
+- [README](../README.md) — 项目总览、运行方式、格式依据、使用提醒
 - [docs/usage.md](usage.md) — 更完整的元素语法参考（含 `::: table` 全部参数）
 - [docs/profiles.md](profiles.md) — 想改格式实现或适配其他学校时看
 - [example/thesis-demo.md](../example/thesis-demo.md) — 可直接导出的完整样例

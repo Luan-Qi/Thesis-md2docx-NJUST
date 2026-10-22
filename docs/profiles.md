@@ -162,7 +162,7 @@ Markdown 文件
 格式复刻时建议同步使用审计命令：
 
 ```bash
-md2docx compare-docx reference.docx candidate.docx --out output/audit.md
+python md2docx.py compare-docx reference.docx candidate.docx --out output/audit.md
 ```
 
 它会列出分节、页边距、页眉页脚引用、关键段落、字体 run、表格行高、单元格属性、图片和域字段，适合定位“规范写了但工具没表达出来”的细节。

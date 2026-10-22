@@ -4,6 +4,7 @@ import argparse
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from .audit import add_compare_docx_parser, run_compare_docx
@@ -33,6 +34,33 @@ def default_preview_dpi() -> int:
         return 120
 
 
+def print_start(argv: list[str]) -> float:
+    """打印开跑提示并返回计时起点。
+
+    使用者往往是在终端里等着，看不出程序在干什么；Word 环节又慢，很容易误以为
+    卡死。所以开头就把「在做什么、在哪、什么可能慢」讲清楚。
+    """
+
+    started = time.perf_counter()
+    print("md2docx 开始")
+    print(f"  命令：{' '.join(argv) if argv else '(无参数)'}")
+    print(f"  目录：{Path.cwd()}")
+    print(
+        "  提示：生成 DOCX 只需要 Python；导出 PDF 与刷新目录页码会调用 Microsoft Word，"
+        "单次 30~60 秒属正常，期间请勿关闭 Word 窗口。"
+    )
+    sys.stdout.flush()
+    return started
+
+
+def print_finish(started: float, status: int) -> None:
+    elapsed = time.perf_counter() - started
+    if status == 0:
+        print(f"md2docx 完成，用时 {elapsed:.1f} 秒。")
+    else:
+        print(f"md2docx 结束（退出码 {status}），用时 {elapsed:.1f} 秒。")
+
+
 def add_docx_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--profile",
@@ -57,6 +85,8 @@ def add_docx_options(parser: argparse.ArgumentParser) -> None:
 
 
 def render_pdf_pages(pdf_path: Path, pages_dir: Path, *, dpi: int) -> None:
+    print(f"正在把 PDF 渲染成逐页 PNG（{dpi} dpi）…")
+    sys.stdout.flush()
     render_pdf_to_images(pdf_path, pages_dir, dpi=dpi, prefix="page")
     print(f"PDF pages written to: {pages_dir / 'page-*.png'}")
 
@@ -96,6 +126,8 @@ def run_direct(args: argparse.Namespace) -> None:
     print(f"DOCX written to: {output_docx}")
 
     if args.pdf:
+        print(f"正在用 {args.backend} 后端导出 PDF…")
+        sys.stdout.flush()
         args.input = str(output_docx)
         args.output = str(output_pdf)
         convert_from_args(args)
@@ -117,6 +149,8 @@ def run_all(args: argparse.Namespace) -> None:
         profile=args.profile,
     )
     print(f"DOCX written to: {output_docx}")
+    print(f"正在用 {args.backend} 后端导出 PDF…")
+    sys.stdout.flush()
     args.input = str(output_docx)
     args.output = str(output_pdf)
     convert_from_args(args)
@@ -292,8 +326,7 @@ COMPAT_COMMANDS = {
 }
 
 
-def main(argv: list[str] | None = None) -> int:
-    argv = list(sys.argv[1:] if argv is None else argv)
+def _run(argv: list[str]) -> int:
     if argv and argv[0] not in COMPAT_COMMANDS and argv[0] not in {"-h", "--help"}:
         parser = build_direct_parser()
         args = parser.parse_args(argv)
@@ -341,6 +374,16 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     return 2
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Entry point: 开跑提示 → 执行 → 计时与结束提示。"""
+
+    argv = list(sys.argv[1:] if argv is None else argv)
+    started = print_start(argv)
+    status = _run(argv)
+    print_finish(started, status)
+    return status
 
 
 if __name__ == "__main__":

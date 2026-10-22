@@ -26,7 +26,7 @@ export THESIS_MD2DOCX_REPO=/path/to/Thesis-md2docx-NJUST
 2. Check the environment:
 
    ```bash
-   md2docx check
+   python md2docx.py check
    ```
 
 3. If the Markdown contains formulas, make sure the formula helper is installed:
@@ -40,19 +40,19 @@ export THESIS_MD2DOCX_REPO=/path/to/Thesis-md2docx-NJUST
 5. Export DOCX (the NJUST profile is the default, so `--profile` is not needed):
 
    ```bash
-   md2docx thesis.md --out output
+   python md2docx.py thesis.md --out output
    ```
 
 6. Export PDF and page images when layout preview is needed:
 
    ```bash
-   md2docx thesis.md --pdf --pages --out output --backend word
+   python md2docx.py thesis.md --pdf --pages --out output --backend word
    ```
 
 7. Write real table-of-contents page numbers back into the DOCX before submission:
 
    ```bash
-   md2docx refresh-fields output/thesis.docx
+   python md2docx.py refresh-fields output/thesis.docx
    ```
 
    The DOCX is generated **without** `w:updateFields` and **without** any
